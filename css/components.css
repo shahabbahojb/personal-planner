@@ -1186,6 +1186,7 @@ input[type="number"] {
   border-radius: var(--radius-lg);
   padding: var(--sp-4);
   margin-top: var(--sp-4);
+  position: relative;
 }
 
 .timeline-card__title {
@@ -1201,6 +1202,36 @@ input[type="number"] {
   width: 100%;
   height: auto;
   display: block;
+}
+
+.timeline-tooltip {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 6px 10px;
+  font-size: 12px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 100;
+  box-shadow: var(--shadow-md);
+  gap: 6px;
+  align-items: center;
+}
+.timeline-tooltip--visible {
+  display: flex;
+}
+.timeline-tip__dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
 .timeline-untimed-list {

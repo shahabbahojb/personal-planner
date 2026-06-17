@@ -41,16 +41,17 @@ const Timeline = (() => {
       const minSpan = 4;
       const finalEndDeg = Math.max(endDeg, startDeg + minSpan);
 
-      const label = Utils.escHtml(t.title) + ' ' + t.startTime + '–' + Utils.computeEndTime(t.startTime, t.duration);
       const completedOp = t.completed ? '0.5' : '1';
+      const tipTitle = Utils.escHtml(t.title).replace(/'/g, '&#39;');
+      const tipTime  = `${t.startTime} – ${Utils.computeEndTime(t.startTime, t.duration)}`;
+      const tipHtml  = `<span class=\\'timeline-tip__dot\\' style=\\'background:${color}\\'></span><span><strong>${tipTitle}</strong><br>${tipTime}</span>`;
 
       paths.push(`<path d="${arcPath(OR, IR, startDeg, finalEndDeg)}"
         fill="${color}" opacity="${completedOp}"
         style="cursor:pointer;transition:opacity 0.15s"
-        onmouseenter="this.style.opacity='1'"
-        onmouseleave="this.style.opacity='${completedOp}'"
+        onmouseenter="this.style.opacity='1';var t=document.getElementById('timeline-tip');if(t){t.innerHTML='${tipHtml}';t.classList.add('timeline-tooltip--visible');}"
+        onmouseleave="this.style.opacity='${completedOp}';var t=document.getElementById('timeline-tip');if(t){t.classList.remove('timeline-tooltip--visible');}"
         data-action="timeline-task" data-task-id="${t.id}">
-        <title>${label}</title>
       </path>`);
 
       if (t.breakAfter) {
@@ -102,6 +103,7 @@ const Timeline = (() => {
     return `
       <div class="timeline-card">
         <div class="timeline-card__title">Day Timeline</div>
+        <div class="timeline-tooltip" id="timeline-tip" aria-hidden="true"></div>
         <svg viewBox="0 0 220 220" xmlns="http://www.w3.org/2000/svg" aria-label="Daily timeline">
           <circle cx="${CX}" cy="${CY}" r="${(OR + IR) / 2}" fill="none" stroke="var(--surface-2)" stroke-width="${OR - IR}"/>
           ${paths.join('')}
