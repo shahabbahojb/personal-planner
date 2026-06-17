@@ -254,74 +254,136 @@ const SprintDetailView = (() => {
           <label class="form-label">Task title *</label>
           <input class="form-input" name="taskTitle" type="text" placeholder="What needs to be done?" maxlength="120" value="${Utils.escHtml(t.title || '')}">
         </div>
-        <div class="form-group">
-          <label class="form-label">Schedule to day</label>
-          <input class="form-input" name="taskDay" type="date"
-            min="${sprint.startDate}" max="${sprint.endDate}"
-            value="${t.dayDate || ''}">
-          <span class="form-hint">Leave blank for unscheduled</span>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-4)">
+          <div class="form-group">
+            <label class="form-label">Category</label>
+            <select class="form-select" name="taskCat">
+              <option value="">— None —</option>
+              ${catOptions}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Priority</label>
+            <select class="form-select" name="taskPriority">
+              <option value="low" ${t.priority === 'low' ? 'selected' : ''}>🟢 Low</option>
+              <option value="medium" ${(!t.priority || t.priority === 'medium') ? 'selected' : ''}>🟡 Medium</option>
+              <option value="high" ${t.priority === 'high' ? 'selected' : ''}>🔴 High</option>
+            </select>
+          </div>
         </div>
-        <div class="form-group">
-          <label class="form-label">Category</label>
-          <select class="form-select" name="taskCat">
-            <option value="">— None —</option>
-            ${catOptions}
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Priority</label>
-          <select class="form-select" name="taskPriority">
-            <option value="low" ${t.priority === 'low' ? 'selected' : ''}>🟢 Low</option>
-            <option value="medium" ${(!t.priority || t.priority === 'medium') ? 'selected' : ''}>🟡 Medium</option>
-            <option value="high" ${t.priority === 'high' ? 'selected' : ''}>🔴 High</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Score value (pts on completion)</label>
-          <input class="form-input" name="taskScore" type="number" min="0" value="${t.score !== undefined ? t.score : 5}" style="max-width:120px">
-        </div>
-        <div class="divider" style="margin:4px 0"></div>
-        <div class="form-group" style="flex-direction:row;align-items:center;gap:8px">
-          <input type="checkbox" id="chk-time" name="enableTime" ${hasTime ? 'checked' : ''} style="width:16px;height:16px">
-          <label for="chk-time" style="font-size:13px;font-weight:600;cursor:pointer">⏱ Schedule a time</label>
-        </div>
-        <div id="time-section" style="display:${hasTime ? '' : 'none'};padding-left:24px">
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
-            <div class="form-group">
-              <label class="form-label">Start time</label>
-              <input class="form-input" name="startTime" type="time" value="${t.startTime || ''}">
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-4)">
+          <div class="form-group">
+            <label class="form-label">Schedule to day</label>
+            <div class="input-icon-wrap">
+              <span class="input-icon-wrap__icon">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="1" y="3" width="14" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/>
+                  <path d="M1 7h14" stroke="currentColor" stroke-width="1.5"/>
+                  <path d="M5 1v4M11 1v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+              </span>
+              <input class="form-input" name="taskDay" type="date"
+                min="${sprint.startDate}" max="${sprint.endDate}"
+                value="${t.dayDate || ''}"
+                style="cursor:pointer">
+              <span class="input-icon-wrap__trigger">
+                <svg width="12" height="12" viewBox="0 0 12 8" fill="none"><path d="M1 1l5 5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              </span>
             </div>
-            <div class="form-group">
-              <label class="form-label">Duration (min)</label>
-              <input class="form-input" name="duration" type="number" min="1" value="${t.duration || ''}">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Break after (min)</label>
-              <input class="form-input" name="breakAfter" type="number" min="0" value="${t.breakAfter || ''}">
+            <span class="form-hint">ℹ Leave blank for unscheduled</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Score</label>
+            <div class="input-with-suffix">
+              <input class="form-input" name="taskScore" type="number" min="0" value="${t.score !== undefined ? t.score : 5}">
+              <span class="input-suffix">pts</span>
             </div>
           </div>
         </div>
-        <div class="form-group" style="flex-direction:row;align-items:center;gap:8px">
-          <input type="checkbox" id="chk-pomo" name="enablePomodoro" ${hasPomo ? 'checked' : ''} style="width:16px;height:16px">
-          <label for="chk-pomo" style="font-size:13px;font-weight:600;cursor:pointer">🍅 Pomodoro</label>
+
+        <div class="divider" style="margin:var(--sp-2) 0"></div>
+
+        <label class="form-toggle" for="chk-time">
+          <input type="checkbox" id="chk-time" name="enableTime" ${hasTime ? 'checked' : ''}>
+          <span class="form-toggle__track"><span class="form-toggle__thumb"></span></span>
+          <span class="form-toggle__text">⏱ Schedule a time block</span>
+        </label>
+
+        <div id="time-section" style="display:${hasTime ? '' : 'none'}">
+          <div class="collapsible-section">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:var(--sp-3)">
+              <div class="form-group">
+                <label class="form-label">Start time</label>
+                <div class="input-icon-wrap">
+                  <span class="input-icon-wrap__icon">
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.5"/>
+                      <path d="M8 5v3.5l2.5 1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </span>
+                  <input class="form-input" name="startTime" type="time" value="${t.startTime || ''}" style="cursor:pointer">
+                  <span class="input-icon-wrap__trigger">
+                    <svg width="12" height="12" viewBox="0 0 12 8" fill="none"><path d="M1 1l5 5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                  </span>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Duration</label>
+                <div class="input-with-suffix">
+                  <input class="form-input" name="duration" type="number" min="1" value="${t.duration || ''}" placeholder="60">
+                  <span class="input-suffix">min</span>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Break after</label>
+                <div class="input-with-suffix">
+                  <input class="form-input" name="breakAfter" type="number" min="0" value="${t.breakAfter || ''}" placeholder="0">
+                  <span class="input-suffix">min</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-        <div id="pomo-section" style="display:${hasPomo ? '' : 'none'};padding-left:24px">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-            <div class="form-group">
-              <label class="form-label">Sessions</label>
-              <input class="form-input" name="pomoSessions" type="number" min="1" max="12" value="${p.sessions || 4}">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Focus (min)</label>
-              <input class="form-input" name="pomoFocus" type="number" min="1" value="${p.focusDuration || 25}">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Short break (min)</label>
-              <input class="form-input" name="pomoShort" type="number" min="1" value="${p.shortBreak || 5}">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Long break (min)</label>
-              <input class="form-input" name="pomoLong" type="number" min="1" value="${p.longBreak || 15}">
+
+        <label class="form-toggle" for="chk-pomo">
+          <input type="checkbox" id="chk-pomo" name="enablePomodoro" ${hasPomo ? 'checked' : ''}>
+          <span class="form-toggle__track"><span class="form-toggle__thumb"></span></span>
+          <span class="form-toggle__text">🍅 Pomodoro timer</span>
+        </label>
+
+        <div id="pomo-section" style="display:${hasPomo ? '' : 'none'}">
+          <div class="collapsible-section collapsible-section--pomo">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-3)">
+              <div class="form-group">
+                <label class="form-label">Sessions</label>
+                <div class="input-with-suffix">
+                  <input class="form-input" name="pomoSessions" type="number" min="1" max="12" value="${p.sessions || 4}">
+                  <span class="input-suffix">×</span>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Focus</label>
+                <div class="input-with-suffix">
+                  <input class="form-input" name="pomoFocus" type="number" min="1" value="${p.focusDuration || 25}">
+                  <span class="input-suffix">min</span>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Short break</label>
+                <div class="input-with-suffix">
+                  <input class="form-input" name="pomoShort" type="number" min="1" value="${p.shortBreak || 5}">
+                  <span class="input-suffix">min</span>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Long break</label>
+                <div class="input-with-suffix">
+                  <input class="form-input" name="pomoLong" type="number" min="1" value="${p.longBreak || 15}">
+                  <span class="input-suffix">min</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>`,

@@ -72,18 +72,47 @@ const DashboardView = (() => {
             </div>`).join('')}
         </div>
       </div>
-      <div class="form-group">
-        <label class="form-label">Start date</label>
-        <input class="form-input" name="startDate" type="date" value="${startVal}">
-      </div>
-      <div class="form-group" id="end-date-group" style="display:${typeVal === 'custom' ? '' : 'none'}">
-        <label class="form-label">End date</label>
-        <input class="form-input" name="endDate" type="date" value="${endVal}">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-4)">
+        <div class="form-group">
+          <label class="form-label">Start date</label>
+          <div class="input-icon-wrap">
+            <span class="input-icon-wrap__icon">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="1" y="3" width="14" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M1 7h14" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M5 1v4M11 1v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            </span>
+            <input class="form-input" name="startDate" type="date" value="${startVal}" style="cursor:pointer">
+            <span class="input-icon-wrap__trigger">
+              <svg width="12" height="12" viewBox="0 0 12 8" fill="none"><path d="M1 1l5 5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            </span>
+          </div>
+        </div>
+        <div class="form-group" id="end-date-group" style="display:${typeVal === 'custom' ? '' : 'none'}">
+          <label class="form-label">End date</label>
+          <div class="input-icon-wrap">
+            <span class="input-icon-wrap__icon">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="1" y="3" width="14" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M1 7h14" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M5 1v4M11 1v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            </span>
+            <input class="form-input" name="endDate" type="date" value="${endVal}" style="cursor:pointer">
+            <span class="input-icon-wrap__trigger">
+              <svg width="12" height="12" viewBox="0 0 12 8" fill="none"><path d="M1 1l5 5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            </span>
+          </div>
+        </div>
       </div>
       <div class="form-group">
         <label class="form-label">Target score (pts to win)</label>
-        <input class="form-input" name="targetScore" type="number" min="1" value="${s.targetScore || 50}" placeholder="50">
-        <span class="form-hint">Each completed task gives its score value. Reach this to win the sprint!</span>
+        <div class="input-with-suffix" style="max-width:180px">
+          <input class="form-input" name="targetScore" type="number" min="1" value="${s.targetScore || 50}" placeholder="50">
+          <span class="input-suffix">pts</span>
+        </div>
+        <span class="form-hint">ℹ Each completed task gives its score value. Reach this to win!</span>
       </div>`;
 
     Modal.open({
