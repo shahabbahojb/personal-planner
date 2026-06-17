@@ -1,7 +1,7 @@
 /* Bootstrap */
-(function () {
-  /* Load store */
-  Store.load();
+(async function () {
+  /* Load store from API */
+  await Store.load();
 
   /* Apply saved theme */
   if (Store.getState().theme === 'dark') {
@@ -238,4 +238,7 @@
   /* ── Update theme icon on load ────────────── */
   const icon = document.querySelector('.theme-icon');
   if (icon) icon.textContent = Store.getState().theme === 'dark' ? '☽' : '☀';
+
+  /* Initial render — replaces the window load listener removed from router.js */
+  Router.renderCurrent();
 })();

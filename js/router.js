@@ -34,7 +34,6 @@ const Router = (() => {
   }
 
   window.addEventListener('hashchange', render);
-  window.addEventListener('load', render);
 
   return { navigate, render, renderCurrent, getCurrentSprintId: () => _currentSprintId };
 })();

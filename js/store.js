@@ -1,6 +1,4 @@
 const Store = (() => {
-  const KEY = 'planner-v1';
-
   const DEFAULT_STATE = {
     version: 2,
     theme: 'light',
@@ -14,6 +12,7 @@ const Store = (() => {
 
   let state = null;
   let onWinCallback = null;
+  let _saveTimer = null;
 
   function _migrateTask(task) {
     if (!('dayDate' in task))      task.dayDate = null;
@@ -24,35 +23,59 @@ const Store = (() => {
     return task;
   }
 
-  function load() {
+  function _saveImmediate() {
+    clearTimeout(_saveTimer);
+    _saveTimer = null;
+    fetch('/api/state', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(state)
+    }).catch(err => console.error('[Store] save failed:', err));
+  }
+
+  function _save() {
+    clearTimeout(_saveTimer);
+    _saveTimer = setTimeout(() => { _saveTimer = null; _saveImmediate(); }, 300);
+  }
+
+  async function load() {
     try {
-      const raw = localStorage.getItem(KEY);
-      if (!raw) {
+      const res = await fetch('/api/state');
+      if (!res.ok) throw new Error('API error ' + res.status);
+      const parsed = await res.json();
+
+      if (!parsed.version || parsed.version < 1) {
         state = JSON.parse(JSON.stringify(DEFAULT_STATE));
       } else {
-        const parsed = JSON.parse(raw);
-        if (!parsed.version || parsed.version < 1) {
-          state = JSON.parse(JSON.stringify(DEFAULT_STATE));
-        } else {
-          state = parsed;
-          if (state.version < 2) {
-            state.version = 2;
-            if (!state.analytics) {
-              state.analytics = { totalFocusedMinutes: 0, totalSessions: 0, dailyLog: {} };
-            }
-            state.sprints.forEach(s => s.tasks.forEach(t => _migrateTask(t)));
-            save();
+        state = parsed;
+        if (state.version < 2) {
+          state.version = 2;
+          if (!state.analytics) {
+            state.analytics = { totalFocusedMinutes: 0, totalSessions: 0, dailyLog: {} };
           }
+          state.sprints.forEach(s => s.tasks.forEach(t => _migrateTask(t)));
+          _saveImmediate();
+        }
+      }
+
+      // One-time migration: if server has empty state but localStorage has data, migrate it
+      if ((!state.sprints || !state.sprints.length) && !Object.keys(state.analytics.dailyLog || {}).length) {
+        const legacy = localStorage.getItem('planner-v1');
+        if (legacy) {
+          try {
+            const legacyState = JSON.parse(legacy);
+            if (legacyState.sprints && legacyState.sprints.length) {
+              state = legacyState;
+              _saveImmediate();
+              localStorage.removeItem('planner-v1');
+            }
+          } catch (_) {}
         }
       }
     } catch (e) {
+      console.error('[Store] load failed, using default state:', e);
       state = JSON.parse(JSON.stringify(DEFAULT_STATE));
     }
-    return state;
-  }
-
-  function save() {
-    localStorage.setItem(KEY, JSON.stringify(state));
   }
 
   function getState() { return state; }
@@ -76,7 +99,7 @@ const Store = (() => {
       createdAt: Date.now()
     };
     state.sprints.unshift(sprint);
-    save();
+    _save();
     return sprint;
   }
 
@@ -90,12 +113,12 @@ const Store = (() => {
       sprint.startDate = dates.startDate;
       sprint.endDate = dates.endDate;
     }
-    save();
+    _save();
   }
 
   function deleteSprint(id) {
     state.sprints = state.sprints.filter(s => s.id !== id);
-    save();
+    _save();
   }
 
   function getSprint(id) {
@@ -113,7 +136,7 @@ const Store = (() => {
       emoji: data.emoji || ''
     };
     sprint.categories.push(cat);
-    save();
+    _save();
     return cat;
   }
 
@@ -122,7 +145,7 @@ const Store = (() => {
     if (!sprint) return;
     const cat = sprint.categories.find(c => c.id === catId);
     if (cat) Object.assign(cat, patch);
-    save();
+    _save();
   }
 
   function deleteCategory(sprintId, catId) {
@@ -130,7 +153,7 @@ const Store = (() => {
     if (!sprint) return;
     sprint.categories = sprint.categories.filter(c => c.id !== catId);
     sprint.tasks.forEach(t => { if (t.categoryId === catId) t.categoryId = null; });
-    save();
+    _save();
   }
 
   /* ── Task ───────────────────────────────────── */
@@ -155,7 +178,7 @@ const Store = (() => {
       pomodoro: data.pomodoro || null
     };
     sprint.tasks.push(task);
-    save();
+    _save();
     return task;
   }
 
@@ -167,7 +190,6 @@ const Store = (() => {
 
     const wasCompleted = task.completed;
     Object.assign(task, patch);
-    save();
 
     if ('completed' in patch) {
       if (patch.completed && !wasCompleted) {
@@ -176,17 +198,18 @@ const Store = (() => {
       const current = getSprintScore(sprintId);
       if (!sprint.won && current >= sprint.targetScore) {
         sprint.won = true;
-        save();
         if (onWinCallback) onWinCallback(sprint);
       }
     }
+
+    _save();
   }
 
   function deleteTask(sprintId, taskId) {
     const sprint = _getSprint(sprintId);
     if (!sprint) return;
     sprint.tasks = sprint.tasks.filter(t => t.id !== taskId);
-    save();
+    _save();
   }
 
   function reorderTasks(sprintId, orderedIds) {
@@ -196,7 +219,7 @@ const Store = (() => {
       const task = sprint.tasks.find(t => t.id === id);
       if (task) task.order = idx;
     });
-    save();
+    _save();
   }
 
   /* ── Analytics ──────────────────────────────── */
@@ -210,7 +233,7 @@ const Store = (() => {
     if (data.completedSessions){ log.completedSessions += data.completedSessions; state.analytics.totalSessions       += data.completedSessions; }
     if (data.completedTasks)   { log.completedTasks   += data.completedTasks; }
     if (data.score)            { log.score            += data.score; }
-    save();
+    _save();
   }
 
   /* ── Computed ───────────────────────────────── */
@@ -239,7 +262,7 @@ const Store = (() => {
   /* ── Theme ──────────────────────────────────── */
   function setTheme(theme) {
     state.theme = theme;
-    save();
+    _save();
   }
 
   /* ── Internal ───────────────────────────────── */
@@ -249,8 +272,16 @@ const Store = (() => {
 
   function onWin(cb) { onWinCallback = cb; }
 
+  // Flush pending save when tab is hidden or closed
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden' && _saveTimer !== null) _saveImmediate();
+  });
+  window.addEventListener('pagehide', () => {
+    if (_saveTimer !== null) _saveImmediate();
+  });
+
   return {
-    load, save, getState, getSprint,
+    load, getState, getSprint,
     createSprint, updateSprint, deleteSprint,
     createCategory, updateCategory, deleteCategory,
     createTask, updateTask, deleteTask, reorderTasks,

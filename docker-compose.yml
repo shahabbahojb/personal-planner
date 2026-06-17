@@ -1,0 +1,17 @@
+version: "3.9"
+
+services:
+  planner:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - planner-data:/app/data
+    environment:
+      - PORT=3000
+      - DB_PATH=/app/data/planner.db
+    restart: unless-stopped
+
+volumes:
+  planner-data:
+    driver: local

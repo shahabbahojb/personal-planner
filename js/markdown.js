@@ -93,12 +93,18 @@ const Markdown = (() => {
         continue;
       }
 
+      if (/^[-*_]{3,}$/.test(line.trim())) {
+        out.push('<hr>');
+        i++;
+        continue;
+      }
+
       if (line.trim() === '') { i++; continue; }
 
       const paraLines = [];
       while (i < lines.length) {
         const l = lines[i];
-        if (l.trim() === '' || /^[#>*-]/.test(l) || /^\d+\./.test(l) || l.includes('\x00CB')) break;
+        if (l.trim() === '' || /^#{1,3}\s/.test(l) || /^[>*-]\s/.test(l) || /^\d+\.\s/.test(l) || l.includes('\x00CB')) break;
         paraLines.push(inline(esc(l)));
         i++;
       }
