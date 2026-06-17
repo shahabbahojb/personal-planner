@@ -23,12 +23,13 @@ const Timeline = (() => {
 
   function render(tasks, { selectedDate, categories } = {}) {
     const today = selectedDate || Utils.today();
-    const scheduled = tasks.filter(t => t.startTime && t.duration && t.dayDate === today);
+    const timed   = tasks.filter(t => t.startTime && t.duration && t.dayDate === today);
+    const untimed = tasks.filter(t => t.dayDate === today && !(t.startTime && t.duration));
 
     let totalMins = 0;
     const paths = [];
 
-    scheduled.forEach(t => {
+    timed.forEach(t => {
       const cat = categories && t.categoryId ? categories.find(c => c.id === t.categoryId) : null;
       const color = cat ? cat.color : 'var(--accent)';
       const startMins = Utils.timeToMinutes(t.startTime);
@@ -86,6 +87,18 @@ const Timeline = (() => {
 
     const dayLabel = `<text x="${CX}" y="208" text-anchor="middle" font-size="9" fill="var(--text-muted)">${Utils.formatDate(today)}</text>`;
 
+    const untimedList = untimed.length > 0 ? `
+      <ul class="timeline-untimed-list">
+        ${untimed.map(t => {
+          const cat = categories && t.categoryId ? categories.find(c => c.id === t.categoryId) : null;
+          const dot = cat
+            ? `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${cat.color};margin-right:5px;flex-shrink:0"></span>`
+            : '';
+          const check = t.completed ? '✓ ' : '';
+          return `<li style="opacity:${t.completed ? 0.5 : 1}">${dot}${check}${Utils.escHtml(t.title)}</li>`;
+        }).join('')}
+      </ul>` : '';
+
     return `
       <div class="timeline-card">
         <div class="timeline-card__title">Day Timeline</div>
@@ -97,7 +110,8 @@ const Timeline = (() => {
           ${centerText}
           ${dayLabel}
         </svg>
-        ${scheduled.length === 0 ? '<p style="font-size:11px;color:var(--text-muted);text-align:center;margin-top:4px">Schedule tasks with start times to see them here.</p>' : ''}
+        ${timed.length === 0 && untimed.length === 0 ? '<p style="font-size:11px;color:var(--text-muted);text-align:center;margin-top:4px">Assign tasks to this day to see them here.</p>' : ''}
+        ${untimedList}
       </div>`;
   }
 

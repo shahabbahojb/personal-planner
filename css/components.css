@@ -1203,6 +1203,25 @@ input[type="number"] {
   display: block;
 }
 
+.timeline-untimed-list {
+  list-style: none;
+  padding: 4px 8px 0;
+  margin: 6px 0 0;
+  font-size: 11px;
+  color: var(--text-secondary);
+  max-height: 120px;
+  overflow-y: auto;
+  border-top: 1px solid var(--border);
+}
+.timeline-untimed-list li {
+  display: flex;
+  align-items: center;
+  padding: 3px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* ─── POMODORO WIDGET ──────────────────────────── */
 #pomodoro-widget {
   position: fixed;
