@@ -1,8 +1,41 @@
 # ⚡ Smart Personal Planner
 
-A sprint-based productivity planner with gamification, a Pomodoro timer, a day timeline, and analytics — all in a single static HTML file. No build step, no dependencies, no server.
+A sprint-based productivity planner with gamification, a Pomodoro timer, a day timeline, and analytics. Backed by SQLite and deployable with Docker.
 
 ![Dashboard](screenshots/dashboard.png)
+
+---
+
+## Getting Started
+
+### Run with npm (local dev)
+
+Requires Node.js v22 or later.
+
+```bash
+npm install
+npm start
+```
+
+Open [http://localhost:3000](http://localhost:3000).
+
+To reset all data:
+```bash
+rm data/planner.db
+```
+
+### Run with Docker
+
+```bash
+docker-compose up --build
+```
+
+Open [http://localhost:3000](http://localhost:3000).
+
+Data is stored in a named Docker volume (`planner-data`) and survives container restarts. To wipe it:
+```bash
+docker-compose down -v
+```
 
 ---
 
@@ -60,40 +93,28 @@ One-click theme toggle. All colors are CSS custom properties — the switch is i
 
 ---
 
-## Getting Started
-
-No install required. Just open the file:
-
-```bash
-open /path/to/Planner/index.html
-```
-
-Or drag `index.html` into any browser.
-
-To reset all data:
-```js
-// Paste in browser DevTools console
-localStorage.removeItem('planner-v1')
-```
-
----
-
 ## Project Structure
 
 ```
 index.html                  App shell (navbar, #app mount, modal portal, toast portal)
 planning-table.html         Standalone weekly task tracker (separate tool)
+server/
+  server.js                 Express API (GET/PUT /api/state) + static file serving
+package.json                Node.js dependencies (express)
+Dockerfile                  Node 24 Alpine image
+docker-compose.yml          Single service + named volume for SQLite data
+data/                       SQLite database (gitignored; persisted via Docker volume)
 css/
   tokens.css                All CSS variables — light/dark via html.dark class
   base.css                  Reset, body, typography, layout utilities
   components.css            Every UI component class
   animations.css            @keyframes only
 js/
-  store.js                  CRUD for sprints/tasks/categories + localStorage sync
+  store.js                  CRUD for sprints/tasks/categories + async API sync
   router.js                 Hash routing (#dashboard, #sprint/:id, #analytics)
   utils.js                  Pure helpers (escHtml, date formatting, etc.)
   confetti.js               Canvas particle burst on sprint win
-  app.js                    Bootstrap + global event delegation (data-action)
+  app.js                    Async bootstrap + global event delegation (data-action)
   components/
     modal.js                Generic modal open/close/confirm
     toast.js                Ephemeral notifications
@@ -110,7 +131,7 @@ js/
 
 ## Data Model
 
-State is stored in `localStorage` under the key `planner-v1` and never read directly — always accessed through `Store`.
+State is stored as a single JSON document in SQLite (`data/planner.db`) and synced automatically. All access goes through `Store` — never read the database directly.
 
 ```jsonc
 {
@@ -171,7 +192,8 @@ State is stored in `localStorage` under the key `planner-v1` and never read dire
 | Language | Vanilla JavaScript (ES6+), no framework |
 | Styling | CSS custom properties, flexbox/grid |
 | Routing | Hash-based (`#dashboard`, `#sprint/:id`) |
-| Persistence | `localStorage` (key: `planner-v1`) |
+| Backend | Node.js + Express |
+| Database | SQLite via `node:sqlite` (built-in, Node v22+) |
 | Timer audio | Web Audio API |
 | Notifications | Notifications API |
 | Confetti | `<canvas>` particle animation |
