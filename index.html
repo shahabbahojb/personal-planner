@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Planner — Smart Sprint Tracker</title>
+  <meta name="description" content="A minimal, gamified personal planner with sprints, tasks, and score tracking.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/animations.css">
+</head>
+<body>
+
+  <nav id="navbar">
+    <div class="nav-logo">⚡ Planner</div>
+    <div id="nav-breadcrumb"></div>
+    <div class="nav-actions">
+      <a href="planning-table.html" target="_blank" class="btn btn--ghost btn--sm">Weekly Table</a>
+      <button data-action="toggle-theme" class="btn btn--ghost btn--icon" title="Toggle light/dark mode">
+        <span class="theme-icon">☀</span>
+      </button>
+    </div>
+  </nav>
+
+  <main id="app">
+    <div class="empty-state animate-fade-in">
+      <div class="empty-state__icon">⚡</div>
+      <p class="empty-state__sub">Loading…</p>
+    </div>
+  </main>
+
+  <!-- Modal portal -->
+  <div id="modal-overlay" class="modal-overlay hidden" data-action="close-modal-backdrop">
+    <div id="modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"></div>
+  </div>
+
+  <!-- Toast portal -->
+  <div id="toast-container" role="status" aria-live="polite"></div>
+
+  <!-- Scripts: utils first, store second, then components, then views, then router, then app -->
+  <script src="js/utils.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/confetti.js"></script>
+  <script src="js/components/toast.js"></script>
+  <script src="js/components/modal.js"></script>
+  <script src="js/components/categoryChip.js"></script>
+  <script src="js/components/taskItem.js"></script>
+  <script src="js/components/sprintCard.js"></script>
+  <script src="js/views/dashboard.js"></script>
+  <script src="js/views/sprintDetail.js"></script>
+  <script src="js/router.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>
