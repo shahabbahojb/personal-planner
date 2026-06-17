@@ -2,13 +2,27 @@ const Store = (() => {
   const KEY = 'planner-v1';
 
   const DEFAULT_STATE = {
-    version: 1,
+    version: 2,
     theme: 'light',
-    sprints: []
+    sprints: [],
+    analytics: {
+      totalFocusedMinutes: 0,
+      totalSessions: 0,
+      dailyLog: {}
+    }
   };
 
   let state = null;
   let onWinCallback = null;
+
+  function _migrateTask(task) {
+    if (!('dayDate' in task))      task.dayDate = null;
+    if (!('startTime' in task))    task.startTime = null;
+    if (!('duration' in task))     task.duration = null;
+    if (!('breakAfter' in task))   task.breakAfter = null;
+    if (!('pomodoro' in task))     task.pomodoro = null;
+    return task;
+  }
 
   function load() {
     try {
@@ -21,6 +35,14 @@ const Store = (() => {
           state = JSON.parse(JSON.stringify(DEFAULT_STATE));
         } else {
           state = parsed;
+          if (state.version < 2) {
+            state.version = 2;
+            if (!state.analytics) {
+              state.analytics = { totalFocusedMinutes: 0, totalSessions: 0, dailyLog: {} };
+            }
+            state.sprints.forEach(s => s.tasks.forEach(t => _migrateTask(t)));
+            save();
+          }
         }
       }
     } catch (e) {
@@ -125,7 +147,12 @@ const Store = (() => {
       completed: false,
       notes: data.notes || '',
       order: maxOrder + 1,
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      dayDate: data.dayDate || null,
+      startTime: data.startTime || null,
+      duration: data.duration ? Number(data.duration) : null,
+      breakAfter: data.breakAfter ? Number(data.breakAfter) : null,
+      pomodoro: data.pomodoro || null
     };
     sprint.tasks.push(task);
     save();
@@ -137,10 +164,15 @@ const Store = (() => {
     if (!sprint) return;
     const task = sprint.tasks.find(t => t.id === taskId);
     if (!task) return;
+
+    const wasCompleted = task.completed;
     Object.assign(task, patch);
     save();
 
     if ('completed' in patch) {
+      if (patch.completed && !wasCompleted) {
+        logAnalytics(Utils.today(), { completedTasks: 1, score: task.score || 0 });
+      }
       const current = getSprintScore(sprintId);
       if (!sprint.won && current >= sprint.targetScore) {
         sprint.won = true;
@@ -167,6 +199,20 @@ const Store = (() => {
     save();
   }
 
+  /* ── Analytics ──────────────────────────────── */
+  function logAnalytics(date, data) {
+    if (!state.analytics) state.analytics = { totalFocusedMinutes: 0, totalSessions: 0, dailyLog: {} };
+    if (!state.analytics.dailyLog[date]) {
+      state.analytics.dailyLog[date] = { focusedMinutes: 0, completedSessions: 0, completedTasks: 0, score: 0 };
+    }
+    const log = state.analytics.dailyLog[date];
+    if (data.focusedMinutes)   { log.focusedMinutes   += data.focusedMinutes;   state.analytics.totalFocusedMinutes += data.focusedMinutes; }
+    if (data.completedSessions){ log.completedSessions += data.completedSessions; state.analytics.totalSessions       += data.completedSessions; }
+    if (data.completedTasks)   { log.completedTasks   += data.completedTasks; }
+    if (data.score)            { log.score            += data.score; }
+    save();
+  }
+
   /* ── Computed ───────────────────────────────── */
   function getSprintScore(sprintId) {
     const sprint = _getSprint(sprintId);
@@ -179,8 +225,15 @@ const Store = (() => {
     if (!sprint) return [];
     return [...sprint.tasks].sort((a, b) => {
       if (a.completed !== b.completed) return a.completed ? 1 : -1;
+      if (a.startTime && b.startTime) return a.startTime.localeCompare(b.startTime);
+      if (a.startTime) return -1;
+      if (b.startTime) return 1;
       return (a.order || 0) - (b.order || 0);
     });
+  }
+
+  function getAllTimeCompletedTasks() {
+    return state.sprints.reduce((sum, s) => sum + s.tasks.filter(t => t.completed).length, 0);
   }
 
   /* ── Theme ──────────────────────────────────── */
@@ -201,6 +254,7 @@ const Store = (() => {
     createSprint, updateSprint, deleteSprint,
     createCategory, updateCategory, deleteCategory,
     createTask, updateTask, deleteTask, reorderTasks,
-    getSprintScore, getSortedTasks, setTheme, onWin
+    getSprintScore, getSortedTasks, getAllTimeCompletedTasks,
+    logAnalytics, setTheme, onWin
   };
 })();

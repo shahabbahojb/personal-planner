@@ -1,11 +1,15 @@
 const Modal = (() => {
   let _confirmCb = null;
 
-  function open({ title, body, onConfirm, confirmLabel = 'Confirm', cancelLabel = 'Cancel', danger = false }) {
+  function open({ title, body, onConfirm, confirmLabel = 'Confirm', cancelLabel = 'Cancel', danger = false, size = '' }) {
     _confirmCb = onConfirm || null;
 
     const overlay = document.getElementById('modal-overlay');
     const modal = document.getElementById('modal');
+
+    const cancelHtml = cancelLabel
+      ? `<button class="btn btn--ghost" data-action="close-modal">${cancelLabel}</button>`
+      : '';
 
     let html = `
       <div class="modal__header">
@@ -14,11 +18,12 @@ const Modal = (() => {
       </div>
       <div class="modal__body">${body}</div>
       <div class="modal__footer">
-        <button class="btn btn--ghost" data-action="close-modal">${cancelLabel}</button>
+        ${cancelHtml}
         <button class="btn ${danger ? 'btn--danger' : 'btn--primary'}" data-action="modal-confirm">${confirmLabel}</button>
       </div>
     `;
 
+    modal.className = 'modal' + (size === 'large' ? ' modal--large' : '');
     modal.innerHTML = html;
     modal.querySelector('.modal__title').textContent = title;
     overlay.classList.remove('hidden');

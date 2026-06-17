@@ -117,5 +117,60 @@ const Utils = (() => {
     });
   }
 
-  return { generateId, today, addDays, computeSprintDates, formatDate, formatDateRange, sprintStatus, scorePercent, escHtml, setTextContent, initDragDrop };
+  /* ── Time helpers ──────────────────────────── */
+  function timeToMinutes(hhmm) {
+    if (!hhmm) return 0;
+    const [h, m] = hhmm.split(':').map(Number);
+    return h * 60 + m;
+  }
+
+  function minutesToTime(mins) {
+    const total = Math.max(0, mins) % 1440;
+    const h = Math.floor(total / 60);
+    const m = total % 60;
+    return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+  }
+
+  function formatDuration(mins) {
+    if (!mins) return '';
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    if (h === 0) return m + 'm';
+    if (m === 0) return h + 'h';
+    return h + 'h ' + m + 'm';
+  }
+
+  function computeEndTime(startTime, duration) {
+    if (!startTime || !duration) return null;
+    return minutesToTime(timeToMinutes(startTime) + Number(duration));
+  }
+
+  function formatDayHeader(iso) {
+    if (!iso) return '';
+    const d = new Date(iso + 'T00:00:00');
+    return d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+  }
+
+  function getLast7Days() {
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (6 - i));
+      return d.toISOString().slice(0, 10);
+    });
+  }
+
+  function computeStreak(dailyLog) {
+    let streak = 0;
+    const d = new Date();
+    while (true) {
+      const key = d.toISOString().slice(0, 10);
+      const log = dailyLog[key];
+      if (!log || (log.focusedMinutes === 0 && log.completedSessions === 0 && log.completedTasks === 0)) break;
+      streak++;
+      d.setDate(d.getDate() - 1);
+    }
+    return streak;
+  }
+
+  return { generateId, today, addDays, computeSprintDates, formatDate, formatDateRange, sprintStatus, scorePercent, escHtml, setTextContent, initDragDrop, timeToMinutes, minutesToTime, formatDuration, computeEndTime, formatDayHeader, getLast7Days, computeStreak };
 })();

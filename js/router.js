@@ -20,6 +20,9 @@ const Router = (() => {
       _currentSprintId = param;
       app.innerHTML = SprintDetailView.render(param);
       SprintDetailView.afterRender(param);
+    } else if (view === 'analytics') {
+      _currentSprintId = null;
+      app.innerHTML = AnalyticsView.render();
     } else {
       _currentSprintId = null;
       app.innerHTML = DashboardView.render();

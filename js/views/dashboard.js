@@ -30,7 +30,10 @@ const DashboardView = (() => {
           <h1 class="page-title">Your Sprints</h1>
           <p class="page-sub">${sprints.length} sprint${sprints.length !== 1 ? 's' : ''}</p>
         </div>
-        <button class="btn btn--primary" data-action="add-sprint">+ New Sprint</button>
+        <div style="display:flex;gap:var(--sp-2)">
+          <button class="btn btn--ghost btn--sm" data-action="open-analytics">📊 Analytics</button>
+          <button class="btn btn--primary" data-action="add-sprint">+ New Sprint</button>
+        </div>
       </div>
       <div class="sprint-grid">${cards}</div>`;
   }

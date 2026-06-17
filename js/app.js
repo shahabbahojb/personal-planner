@@ -14,6 +14,24 @@
     Toast.show('Sprint won! Target reached! 🎉', 'success', 5000);
   });
 
+  /* Pomodoro callbacks */
+  Pomodoro.onTick((state) => {
+    PomodoroWidget.update(state);
+  });
+
+  Pomodoro.onSessionComplete((state) => {
+    const today = Utils.today();
+    const sprint = Store.getSprint(state.sprintId);
+    const task = sprint && sprint.tasks.find(t => t.id === state.taskId);
+    if (task && task.pomodoro) {
+      const completed = Math.min((task.pomodoro.completedSessions || 0) + 1, task.pomodoro.sessions);
+      Store.updateTask(state.sprintId, state.taskId, {
+        pomodoro: { ...task.pomodoro, completedSessions: completed }
+      });
+    }
+    Store.logAnalytics(today, { focusedMinutes: state.focusDuration, completedSessions: 1 });
+  });
+
   /* ── Global click delegation ──────────────── */
   document.addEventListener('click', function (e) {
     const el = e.target.closest('[data-action]');
@@ -140,8 +158,51 @@
         break;
       }
 
-      case 'toggle-notes':
-        SprintDetailView.toggleNotes(taskId);
+      case 'open-notes':
+        SprintDetailView.openNotesModal(sprintId, taskId);
+        break;
+
+      case 'notes-tab':
+        SprintDetailView.switchNotesTab(el.dataset.tab);
+        break;
+
+      case 'switch-view':
+        SprintDetailView.switchView(el.dataset.view);
+        break;
+
+      case 'select-day':
+        SprintDetailView.selectDay(el.dataset.day);
+        break;
+
+      case 'open-analytics':
+        e.preventDefault();
+        Router.navigate('#analytics');
+        break;
+
+      case 'start-pomodoro': {
+        const sprint = Store.getSprint(sprintId);
+        const task = sprint && sprint.tasks.find(t => t.id === taskId);
+        if (!task) break;
+        Pomodoro.start(task, sprintId);
+        PomodoroWidget.update(Pomodoro.getState());
+        break;
+      }
+
+      case 'pomodoro-pause': {
+        const st = Pomodoro.getState();
+        if (st.isRunning) Pomodoro.pause(); else Pomodoro.resume();
+        PomodoroWidget.update(Pomodoro.getState());
+        break;
+      }
+
+      case 'pomodoro-skip':
+        Pomodoro.skip();
+        PomodoroWidget.update(Pomodoro.getState());
+        break;
+
+      case 'pomodoro-stop':
+        Pomodoro.stop();
+        PomodoroWidget.hide();
         break;
 
       /* Category actions */
