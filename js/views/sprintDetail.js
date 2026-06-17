@@ -82,7 +82,7 @@ const SprintDetailView = (() => {
 
     /* View toggle */
     const viewToggleHtml = `
-      <div class="view-toggle" style="margin-bottom:var(--sp-4)">
+      <div class="view-toggle">
         <button class="view-toggle__btn ${_currentView === 'all' ? 'view-toggle__btn--active' : ''}"
           data-action="switch-view" data-view="all">All Tasks</button>
         <button class="view-toggle__btn ${_currentView === 'day' ? 'view-toggle__btn--active' : ''}"
