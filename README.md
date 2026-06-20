@@ -19,6 +19,8 @@ npm start
 
 Open [http://localhost:3000](http://localhost:3000).
 
+> **Note:** The `data/` directory is not committed to the repo. The server creates it automatically on first run, so no manual setup is needed.
+
 To reset all data:
 ```bash
 rm data/planner.db
