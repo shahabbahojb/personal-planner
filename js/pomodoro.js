@@ -1,37 +1,46 @@
 const Pomodoro = (() => {
+  const _STORAGE_KEY = 'pomodoro-active-v1';
+
   let _state = {
-    taskId: null, sprintId: null,
+    taskId: null, sprintId: null, taskTitle: null,
     phase: 'idle',
     sessionIndex: 0, totalSessions: 4,
     focusDuration: 25, shortBreak: 5, longBreak: 15,
-    secondsLeft: 0, isRunning: false, _interval: null
+    secondsLeft: 0, isRunning: false, isOvertime: false,
+    _interval: null
   };
 
+  let _overtimeFired = false;
   let _onTickCb = null;
   let _onSessionCompleteCb = null;
+  let _onBreakCompleteCb = null;
 
   function _phaseDuration() {
-    if (_state.phase === 'focus') return _state.focusDuration * 60;
+    if (_state.phase === 'focus')      return _state.focusDuration * 60;
     if (_state.phase === 'shortBreak') return _state.shortBreak * 60;
-    if (_state.phase === 'longBreak') return _state.longBreak * 60;
+    if (_state.phase === 'longBreak')  return _state.longBreak * 60;
     return 0;
   }
 
   function _nextPhase() {
+    const plannedSec = _phaseDuration();
+    const actualSeconds = plannedSec + Math.max(0, -_state.secondsLeft);
+
     if (_state.phase === 'focus') {
-      if (_onSessionCompleteCb) _onSessionCompleteCb({ ..._state });
+      if (_onSessionCompleteCb) _onSessionCompleteCb({ ..._state, actualSeconds });
       _state.sessionIndex++;
-      if (_state.sessionIndex >= _state.totalSessions) {
-        _state.phase = 'longBreak';
-      } else {
-        _state.phase = 'shortBreak';
-      }
+      _state.phase = _state.sessionIndex >= _state.totalSessions ? 'longBreak' : 'shortBreak';
     } else if (_state.phase === 'shortBreak') {
+      if (_onBreakCompleteCb) _onBreakCompleteCb({ ..._state, actualSeconds });
       _state.phase = 'focus';
     } else if (_state.phase === 'longBreak') {
+      if (_onBreakCompleteCb) _onBreakCompleteCb({ ..._state, actualSeconds });
       stop();
       return;
     }
+
+    _state.isOvertime = false;
+    _overtimeFired = false;
     _state.secondsLeft = _phaseDuration();
     _beep();
     _notify();
@@ -42,17 +51,25 @@ const Pomodoro = (() => {
     if (!_state.isRunning) return;
     _state.secondsLeft--;
     document.title = _formatTime(_state.secondsLeft) + ' — Planner';
-    if (_state.secondsLeft <= 0) {
-      _nextPhase();
-    } else {
-      if (_onTickCb) _onTickCb({ ..._state });
+
+    // Enter overtime: notify once, then keep running
+    if (_state.secondsLeft < 0 && !_overtimeFired) {
+      _state.isOvertime = true;
+      _overtimeFired = true;
+      _beep();
+      _notify();
     }
+
+    _saveToLocalStorage();
+    if (_onTickCb) _onTickCb({ ..._state });
   }
 
   function _formatTime(s) {
-    const m = Math.floor(s / 60);
-    const sec = s % 60;
-    return String(m).padStart(2, '0') + ':' + String(sec).padStart(2, '0');
+    const abs = Math.abs(s);
+    const m = Math.floor(abs / 60);
+    const sec = abs % 60;
+    const str = String(m).padStart(2, '0') + ':' + String(sec).padStart(2, '0');
+    return s < 0 ? '+' + str : str;
   }
 
   function _beep() {
@@ -71,7 +88,11 @@ const Pomodoro = (() => {
   }
 
   function _notify() {
-    const labels = { focus: 'Focus session complete!', shortBreak: 'Short break done — focus time!', longBreak: 'All sessions complete! Great work! 🎉' };
+    const labels = {
+      focus:      'Focus session complete! Take a break.',
+      shortBreak: 'Short break done — focus time!',
+      longBreak:  'All sessions complete! Great work! 🎉'
+    };
     const msg = labels[_state.phase] || 'Timer done';
     if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
       new Notification('⚡ Planner', { body: msg, icon: '' });
@@ -79,8 +100,24 @@ const Pomodoro = (() => {
     if (typeof Toast !== 'undefined') Toast.show(msg, 'success', 4000);
   }
 
+  function _saveToLocalStorage() {
+    try {
+      localStorage.setItem(_STORAGE_KEY, JSON.stringify({
+        taskId: _state.taskId, sprintId: _state.sprintId, taskTitle: _state.taskTitle,
+        phase: _state.phase,
+        sessionIndex: _state.sessionIndex, totalSessions: _state.totalSessions,
+        focusDuration: _state.focusDuration, shortBreak: _state.shortBreak, longBreak: _state.longBreak,
+        secondsLeft: _state.secondsLeft,
+        isRunning: _state.isRunning,
+        isOvertime: _state.isOvertime,
+        savedAt: Date.now()
+      }));
+    } catch (e) {}
+  }
+
   function start(task, sprintId) {
     stop();
+    try { localStorage.removeItem(_STORAGE_KEY); } catch (e) {}
     const cfg = task.pomodoro || {};
     _state = {
       taskId: task.id, sprintId,
@@ -93,8 +130,10 @@ const Pomodoro = (() => {
       longBreak: cfg.longBreak || 15,
       secondsLeft: (cfg.focusDuration || 25) * 60,
       isRunning: true,
+      isOvertime: false,
       _interval: null
     };
+    _overtimeFired = false;
     _state._interval = setInterval(_tick, 1000);
 
     if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
@@ -108,6 +147,7 @@ const Pomodoro = (() => {
     _state.isRunning = false;
     clearInterval(_state._interval);
     _state._interval = null;
+    _saveToLocalStorage();
     if (_onTickCb) _onTickCb({ ..._state });
   }
 
@@ -128,17 +168,48 @@ const Pomodoro = (() => {
     _state.isRunning = false;
     _state.phase = 'idle';
     _state.taskId = null;
+    _state.isOvertime = false;
     _state._interval = null;
+    _overtimeFired = false;
+    try { localStorage.removeItem(_STORAGE_KEY); } catch (e) {}
     document.title = 'Planner — Smart Sprint Tracker';
     if (_onTickCb) _onTickCb({ ..._state });
   }
 
+  function restore(savedData) {
+    clearInterval(_state._interval);
+    const elapsedSeconds = Math.floor((Date.now() - savedData.savedAt) / 1000);
+    const secondsLeft = savedData.secondsLeft - elapsedSeconds;
+    _state = {
+      taskId:       savedData.taskId,
+      sprintId:     savedData.sprintId,
+      taskTitle:    savedData.taskTitle,
+      phase:        savedData.phase,
+      sessionIndex: savedData.sessionIndex,
+      totalSessions: savedData.totalSessions,
+      focusDuration: savedData.focusDuration,
+      shortBreak:   savedData.shortBreak,
+      longBreak:    savedData.longBreak,
+      secondsLeft,
+      isRunning:    false,
+      isOvertime:   secondsLeft < 0,
+      _interval:    null
+    };
+    _overtimeFired = secondsLeft < 0; // don't re-fire the overtime notification
+    if (savedData.isRunning) {
+      resume();
+    } else {
+      if (_onTickCb) _onTickCb({ ..._state });
+    }
+  }
+
   function getState() { return { ..._state }; }
 
-  function onTick(cb) { _onTickCb = cb; }
+  function onTick(cb)            { _onTickCb = cb; }
   function onSessionComplete(cb) { _onSessionCompleteCb = cb; }
+  function onBreakComplete(cb)   { _onBreakCompleteCb = cb; }
 
   function formatTime(s) { return _formatTime(s); }
 
-  return { start, pause, resume, skip, stop, getState, onTick, onSessionComplete, formatTime };
+  return { start, pause, resume, skip, stop, restore, getState, onTick, onSessionComplete, onBreakComplete, formatTime };
 })();

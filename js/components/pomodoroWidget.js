@@ -23,8 +23,10 @@ const PomodoroWidget = (() => {
       `<span class="pomo-dot ${i < state.sessionIndex ? 'pomo-dot--done' : 'pomo-dot--pending'}"></span>`
     ).join('');
 
-    const color = PHASE_COLORS[state.phase] || 'var(--accent)';
-    const label = PHASE_LABELS[state.phase] || '';
+    const baseColor = PHASE_COLORS[state.phase] || 'var(--accent)';
+    const color = state.isOvertime ? 'var(--brand-orange, #f59e0b)' : baseColor;
+    const baseLabel = PHASE_LABELS[state.phase] || '';
+    const label = state.isOvertime ? baseLabel + ' <span style="font-size:10px;opacity:.8">(overtime)</span>' : baseLabel;
     const time = Pomodoro.formatTime(state.secondsLeft);
     const title = state.taskTitle ? Utils.escHtml(state.taskTitle) : '';
     const isPaused = !state.isRunning;

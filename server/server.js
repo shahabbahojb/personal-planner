@@ -5,6 +5,7 @@ const path = require('path');
 const app = express();
 
 const dbPath = process.env.DB_PATH || path.join(__dirname, '..', 'data', 'planner.db');
+require('fs').mkdirSync(path.dirname(dbPath), { recursive: true });
 const db = new DatabaseSync(dbPath);
 
 const DEFAULT_STATE = JSON.stringify({

@@ -26,9 +26,14 @@ const TaskItem = (() => {
       const dots = Array.from({ length: total }, (_, i) =>
         `<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${i < done ? 'var(--brand-red)' : 'var(--border-strong)'};margin-right:2px"></span>`
       ).join('');
+      const focusMins = p.totalFocusedMinutes || 0;
+      const focusStr = focusMins >= 60
+        ? `${Math.floor(focusMins / 60)}h ${focusMins % 60}m`
+        : focusMins > 0 ? `${focusMins}m` : '';
+      const timeLabel = focusStr ? ` · ⏱ ${focusStr}` : '';
       pomodoroHtml = allDone
-        ? `<span class="score-badge" style="color:var(--brand-green);border-color:var(--brand-green)">✓ All sessions</span>`
-        : `<span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--text-muted)">${dots}<span>${done}/${total}</span></span>`;
+        ? `<span class="score-badge" style="color:var(--brand-green);border-color:var(--brand-green)">✓ All sessions${timeLabel}</span>`
+        : `<span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--text-muted)">${dots}<span>${done}/${total}${timeLabel}</span></span>`;
     }
 
     const hasNotes = task.notes && task.notes.trim();

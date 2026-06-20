@@ -24,13 +24,44 @@
     const sprint = Store.getSprint(state.sprintId);
     const task = sprint && sprint.tasks.find(t => t.id === state.taskId);
     if (task && task.pomodoro) {
+      const actualMins = Math.max(1, Math.round(state.actualSeconds / 60));
       const completed = Math.min((task.pomodoro.completedSessions || 0) + 1, task.pomodoro.sessions);
       Store.updateTask(state.sprintId, state.taskId, {
-        pomodoro: { ...task.pomodoro, completedSessions: completed }
+        pomodoro: {
+          ...task.pomodoro,
+          completedSessions: completed,
+          totalFocusedMinutes: (task.pomodoro.totalFocusedMinutes || 0) + actualMins
+        }
       });
+      Store.logAnalytics(today, { focusedMinutes: actualMins, completedSessions: 1 });
     }
-    Store.logAnalytics(today, { focusedMinutes: state.focusDuration, completedSessions: 1 });
   });
+
+  Pomodoro.onBreakComplete((state) => {
+    const sprint = Store.getSprint(state.sprintId);
+    const task = sprint && sprint.tasks.find(t => t.id === state.taskId);
+    if (task && task.pomodoro) {
+      const breakMins = Math.max(0, Math.round(state.actualSeconds / 60));
+      if (breakMins > 0) {
+        Store.updateTask(state.sprintId, state.taskId, {
+          pomodoro: { ...task.pomodoro, totalBreakMinutes: (task.pomodoro.totalBreakMinutes || 0) + breakMins }
+        });
+      }
+    }
+  });
+
+  /* Restore Pomodoro timer after page refresh */
+  const _savedPomo = (() => { try { return JSON.parse(localStorage.getItem('pomodoro-active-v1')); } catch (_) { return null; } })();
+  if (_savedPomo && _savedPomo.taskId) {
+    const _pomoSprint = Store.getSprint(_savedPomo.sprintId);
+    const _pomoTask = _pomoSprint && _pomoSprint.tasks.find(t => t.id === _savedPomo.taskId);
+    if (_pomoTask) {
+      Pomodoro.restore(_savedPomo);
+      PomodoroWidget.update(Pomodoro.getState());
+    } else {
+      try { localStorage.removeItem('pomodoro-active-v1'); } catch (_) {}
+    }
+  }
 
   /* ── Global click delegation ──────────────── */
   document.addEventListener('click', function (e) {
@@ -200,10 +231,26 @@
         PomodoroWidget.update(Pomodoro.getState());
         break;
 
-      case 'pomodoro-stop':
+      case 'pomodoro-stop': {
+        const pomState = Pomodoro.getState();
+        if (pomState.phase === 'focus' && pomState.taskId) {
+          const sprint = Store.getSprint(pomState.sprintId);
+          const task = sprint && sprint.tasks.find(t => t.id === pomState.taskId);
+          if (task && task.pomodoro) {
+            const elapsedSec = pomState.focusDuration * 60 - pomState.secondsLeft;
+            const elapsedMins = Math.max(0, Math.round(elapsedSec / 60));
+            if (elapsedMins > 0) {
+              Store.updateTask(pomState.sprintId, pomState.taskId, {
+                pomodoro: { ...task.pomodoro, totalFocusedMinutes: (task.pomodoro.totalFocusedMinutes || 0) + elapsedMins }
+              });
+              Store.logAnalytics(Utils.today(), { focusedMinutes: elapsedMins });
+            }
+          }
+        }
         Pomodoro.stop();
         PomodoroWidget.hide();
         break;
+      }
 
       /* Category actions */
       case 'add-category':
